@@ -10,8 +10,8 @@ Experience the quality of local generation across different styles:
 
 | 🎬 Cinematic | 🧚 Fantasy | 📸 Realistic |
 |:---:|:---:|:---:|
-| ![Example 1](outputs/out_1773221224_-1_0.png) | ![Example 2](outputs/out_1773231874_-1_0.png) | ![Example 3](outputs/out_1773238482_-1_0.png) |
-| ![Example 4](outputs/out_1773241906_-1_0.png) | ![Example 5](outputs/out_1773274172_-1_0.png) | ![Example 6](outputs/out_1773285981_-1_0.png) |
+| ![Example 1](frontend/public/gallery/out_1773221224_-1_0.png) | ![Example 2](frontend/public/gallery/out_1773231874_-1_0.png) | ![Example 3](frontend/public/gallery/out_1773238482_-1_0.png) |
+| ![Example 4](frontend/public/gallery/out_1773241906_-1_0.png) | ![Example 5](frontend/public/gallery/out_1773274172_-1_0.png) | ![Example 6](frontend/public/gallery/out_1773285981_-1_0.png) |
 
 ---
 
@@ -40,6 +40,22 @@ Experience the quality of local generation across different styles:
 
 > [!IMPORTANT]
 > NVIDIA GPUs with **CUDA** are required for high-speed generation. Older cards like the **GTX 750 Ti** are supported but will be slower.
+
+---
+
+## 📥 Recommended Models
+
+To get started, download one of these popular models and place them in the `/models` folder:
+
+| Model Name | Type | Download Link |
+|:---|:---|:---|
+| **DreamShaper 8** | SD 1.5 | [Download from Civitai](https://civitai.com/models/4384?modelVersionId=128713) |
+| **Realistic Vision V6.0** | SD 1.5 | [Download from Civitai](https://civitai.com/models/4201) |
+| **Juggernaut XL** | SDXL | [Download from Civitai](https://civitai.com/models/133005) |
+| **Pony Diffusion V6 XL** | SDXL | [Download from Civitai](https://civitai.com/models/257749) |
+
+> [!TIP]
+> Always look for the **.safetensors** version for better security and faster loading times.
 
 ---
 
