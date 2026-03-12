@@ -8,10 +8,10 @@ A high-performance, **100% private**, and entirely local AI image generation sui
 
 Experience the quality of local generation across different styles:
 
-| 🎬 Cinematic | 🧚 Fantasy | 📸 Realistic |
+| 🎬 Cinematic | 📸 Product | 🧚 Affiliate |
 |:---:|:---:|:---:|
-| ![Example 1](frontend/public/gallery/out_1773221224_-1_0.png) | ![Example 2](frontend/public/gallery/out_1773231874_-1_0.png) | ![Example 3](frontend/public/gallery/out_1773238482_-1_0.png) |
-| ![Example 4](frontend/public/gallery/out_1773241906_-1_0.png) | ![Example 5](frontend/public/gallery/out_1773274172_-1_0.png) | ![Example 6](frontend/public/gallery/out_1773285981_-1_0.png) |
+| ![Example 1](ai-image-generator/frontend/public/gallery/out_1773221224_-1_0.png) | ![Example 2](ai-image-generator/frontend/public/gallery/out_1773231874_-1_0.png) | ![Example 3](ai-image-generator/frontend/public/gallery/out_1773238482_-1_0.png) |
+| ![Example 4](ai-image-generator/frontend/public/gallery/out_1773241906_-1_0.png) | ![Example 5](ai-image-generator/frontend/public/gallery/out_1773274172_-1_0.png) | ![Example 6](ai-image-generator/frontend/public/gallery/out_1773285981_-1_0.png) |
 
 ---
 
