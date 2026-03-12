@@ -11,3 +11,4 @@ safetensors
 websockets
 python-multipart
 pydantic
+python-dotenv

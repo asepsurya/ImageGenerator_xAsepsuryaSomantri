@@ -8,11 +8,20 @@ from pydantic import BaseModel
 import asyncio
 import json
 
+from contextlib import asynccontextmanager
 from model_loader import model_loader
 from generator import ImageGenerator
 from prompt_engine import enhance_prompt, get_random_prompt
 
-app = FastAPI(title="Local AI Image Generator")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic
+    print("Backend server starting up...")
+    yield
+    # Shutdown logic
+    print("Backend server shutting down...")
+
+app = FastAPI(title="Local AI Image Generator", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,37 +48,57 @@ class GenerateRequest(BaseModel):
     steps: int = 20
     seed: int = -1
     batch_size: int = 1
+    client_id: str | None = None
+    image_reference: str | None = None
+    strength: float = 0.75
 
 # Manager for WebSockets to send progress
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        # Store connections by client_id
+        self.active_connections: dict[str, list[WebSocket]] = {}
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, client_id: str):
         await websocket.accept()
-        self.active_connections.append(websocket)
+        if client_id not in self.active_connections:
+            self.active_connections[client_id] = []
+        self.active_connections[client_id].append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+    def disconnect(self, websocket: WebSocket, client_id: str):
+        if client_id in self.active_connections:
+            self.active_connections[client_id].remove(websocket)
+            if len(self.active_connections[client_id]) == 0:
+                self.active_connections.pop(client_id, None)
 
-    async def send_progress(self, progress: int, status: str = "generating"):
-        for connection in self.active_connections:
-            try:
-                await connection.send_json({"progress": progress, "status": status})
-            except:
-                pass
+    async def send_progress(self, progress: int, status: str = "generating", client_id: str | None = None, data: str | None = None):
+        if not client_id:
+            # Broadcast to all if no client_id (optional fallback)
+            for cid in self.active_connections:
+                for connection in self.active_connections[cid]:
+                    try:
+                        await connection.send_json({"progress": progress, "status": status, "data": data})
+                    except:
+                        pass
+            return
+
+        if client_id in self.active_connections:
+            for connection in self.active_connections[client_id]:
+                try:
+                    await connection.send_json({"progress": progress, "status": status, "data": data})
+                except:
+                    pass
 
 manager = ConnectionManager()
 img_generator = ImageGenerator(model_loader)
 
 @app.websocket("/ws/progress")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+async def websocket_endpoint(websocket: WebSocket, client_id: str = "default"):
+    await manager.connect(websocket, client_id)
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, client_id)
 
 @app.get("/api/models")
 def get_models():
@@ -96,47 +125,73 @@ def enhance(prompt: str, style: str | None = None):
 
 @app.post("/api/generate")
 async def generate_images(req: GenerateRequest):
-    # This might block everything, ideally should run in thread pool
-    # but for local usage it's okay for now.
     loop = asyncio.get_running_loop()
+    client_id = req.client_id
     
     def sync_progress_callback(prog):
         try:
-            # We must use run_coroutine_threadsafe because this callback runs in a separate thread
-            asyncio.run_coroutine_threadsafe(manager.send_progress(prog), loop)
+            asyncio.run_coroutine_threadsafe(manager.send_progress(prog, client_id=client_id), loop)
         except RuntimeError:
             pass
             
-    await manager.send_progress(0, "starting")
+    await manager.send_progress(0, "starting", client_id=client_id)
     
     try:
-        # Run the blocking generation in a threadpool so we don't block the async event loop
-        loop = asyncio.get_running_loop()
-        images = await loop.run_in_executor(
-            None, 
-            lambda: img_generator.generate(req.dict(), callback=sync_progress_callback)
-        )
-        
         results = []
-        for i, img in enumerate(images):
-            # Save to disk
-            filename = f"out_{int(time.time())}_{req.seed}_{i}.png"
-            filepath = os.path.join(OUTPUT_DIR, filename)
-            img.save(filepath)
+        # Sequential generation: loop through batch_size
+        batch_size = req.batch_size
+        base_seed = req.seed if req.seed != -1 else int(time.time() % 100000)
+        
+        for i in range(batch_size):
+            await manager.send_progress(0, f"generating {i+1}/{batch_size}", client_id=client_id)
             
-            # Convert to base64 for quick preview frontend rendering
-            buffered = BytesIO()
-            img.save(buffered, format="PNG")
-            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-            results.append({"filename": filename, "data": img_str})
+            # Update seed for each image if it's random
+            current_seed = base_seed + i
+            current_req = req.dict()
+            current_req['batch_size'] = 1
+            current_req['seed'] = current_seed
             
-        await manager.send_progress(100, "done")
+            images = await loop.run_in_executor(
+                None, 
+                img_generator.generate,
+                current_req,
+                sync_progress_callback
+            )
+            
+            if images:
+                img = images[0]
+                filename = f"out_{int(time.time())}_{current_seed}_{i}.png"
+                filepath = os.path.join(OUTPUT_DIR, filename)
+                img.save(filepath)
+                
+                buffered = BytesIO()
+                img.save(buffered, format="PNG")
+                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                
+                image_data = {"filename": filename, "data": img_str}
+                results.append(image_data)
+                
+                # Send immediate update with the new image
+                await manager.send_progress(100, f"finished {i+1}/{batch_size}", client_id=client_id, data=img_str)
+        
+        await manager.send_progress(100, "done", client_id=client_id)
         return {"images": results}
         
     except Exception as e:
-        await manager.send_progress(0, f"error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        await manager.send_progress(0, f"error: {str(e)}", client_id=client_id)
         return {"error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    host = os.environ.get("HOST", "127.0.0.1")
+    port = int(os.environ.get("PORT", "8000"))
+    
+    try:
+        uvicorn.run(app, host=host, port=port)
+    except KeyboardInterrupt:
+        print("\nStopping server...")

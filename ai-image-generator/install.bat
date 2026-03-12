@@ -9,11 +9,19 @@ call venv\Scripts\activate.bat
 
 echo [2/3] Installing Backend Dependencies...
 cd backend
+if not exist .env (
+    echo Creating backend .env from template...
+    copy .env.example .env
+)
 pip install -r requirements.txt
 cd ..
 
 echo [3/3] Installing Frontend Dependencies...
 cd frontend
+if not exist .env (
+    echo Creating frontend .env from template...
+    copy .env.example .env
+)
 call npm install
 cd ..
 

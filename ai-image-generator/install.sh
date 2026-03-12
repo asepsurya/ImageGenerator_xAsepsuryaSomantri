@@ -9,11 +9,19 @@ source venv/bin/activate
 
 echo "[2/3] Installing Backend Dependencies..."
 cd backend
+if [ ! -f .env ]; then
+    echo "Creating backend .env from template..."
+    cp .env.example .env
+fi
 pip install -r requirements.txt
 cd ..
 
 echo "[3/3] Installing Frontend Dependencies..."
 cd frontend
+if [ ! -f .env ]; then
+    echo "Creating frontend .env from template..."
+    cp .env.example .env
+fi
 npm install
 cd ..
 
