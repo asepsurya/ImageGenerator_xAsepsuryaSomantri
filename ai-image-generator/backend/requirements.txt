@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+torch
+torchvision
+torchaudio
+diffusers
+transformers
+accelerate
+xformers
+safetensors
+websockets
+python-multipart
+pydantic

@@ -1,0 +1,29 @@
+# Python Virtual Environment
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node dependencies
+node_modules/
+frontend/dist/
+frontend/build/
+
+# Local AI Models (Bulky Files)
+models/
+lora/
+*.safetensors
+*.ckpt
+*.bin
+*.pth
+
+# Generated Outputs
+outputs/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.env
